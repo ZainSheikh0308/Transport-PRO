@@ -12,6 +12,11 @@ __pycache__/
 .venv/
 venv/
 
+# Excel and Python (not part of app repo)
+*.xlsx
+*.py
+_tmp_*.xlsx
+
 # Next / Vercel (web)
 web/.next/
 web/out/
