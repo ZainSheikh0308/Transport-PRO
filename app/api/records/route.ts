@@ -10,14 +10,21 @@ import {
 import { routeRecordSchema } from "@/lib/validators/record";
 
 export async function GET() {
-  const user = await getSessionUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
-  }
+  try {
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+    }
 
-  const businessId = await ensureUserBusiness(user.uid, user.email);
-  const items = await listRouteRecords(businessId);
-  return NextResponse.json({ ok: true, items });
+    const businessId = await ensureUserBusiness(user.uid, user.email);
+    const items = await listRouteRecords(businessId);
+    return NextResponse.json({ ok: true, items });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, message: error instanceof Error ? error.message : "Failed to load records" },
+      { status: 500 },
+    );
+  }
 }
 
 export async function POST(request: Request) {
@@ -60,18 +67,25 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const user = await getSessionUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
-  }
+  try {
+    const user = await getSessionUser();
+    if (!user) {
+      return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+    }
 
-  const url = new URL(request.url);
-  const id = url.searchParams.get("id");
-  if (!id) {
-    return NextResponse.json({ ok: false, message: "Missing id" }, { status: 400 });
-  }
+    const url = new URL(request.url);
+    const id = url.searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ ok: false, message: "Missing id" }, { status: 400 });
+    }
 
-  const businessId = await ensureUserBusiness(user.uid, user.email);
-  await deleteRouteRecord(businessId, id);
-  return NextResponse.json({ ok: true });
+    const businessId = await ensureUserBusiness(user.uid, user.email);
+    await deleteRouteRecord(businessId, id);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, message: error instanceof Error ? error.message : "Failed to delete record" },
+      { status: 500 },
+    );
+  }
 }

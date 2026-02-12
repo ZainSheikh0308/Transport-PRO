@@ -26,6 +26,22 @@ type SummaryResponse = {
   topLossRoutes: RouteSeries[];
 };
 
+const emptySummary: SummaryResponse = {
+  ok: true,
+  kpis: {
+    totalTrips: 0,
+    totalIncome: 0,
+    totalExpenses: 0,
+    totalProfit: 0,
+    totalLoss: 0,
+    netResult: 0,
+  },
+  monthly: [],
+  yearly: [],
+  topProfitRoutes: [],
+  topLossRoutes: [],
+};
+
 const monthOptions = [
   "All",
   "January",
@@ -46,15 +62,27 @@ export function DashboardView() {
   const [month, setMonth] = useState("All");
   const [data, setData] = useState<SummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const res = await fetch(`/api/summaries?month=${encodeURIComponent(month)}`);
-      const json = (await res.json()) as SummaryResponse;
-      setData(json);
-      setLoading(false);
+      setError(null);
+      try {
+        const res = await fetch(`/api/summaries?month=${encodeURIComponent(month)}`);
+        const raw = await res.text();
+        const json = raw ? (JSON.parse(raw) as Partial<SummaryResponse> & { message?: string }) : null;
+        if (!res.ok || !json?.ok) {
+          throw new Error(json?.message || `Failed to load dashboard (${res.status})`);
+        }
+        setData(json as SummaryResponse);
+      } catch (err) {
+        setData(emptySummary);
+        setError(err instanceof Error ? err.message : "Failed to load dashboard");
+      } finally {
+        setLoading(false);
+      }
     };
     void fetchData();
   }, [month]);
@@ -87,6 +115,11 @@ export function DashboardView() {
         <div>
           <h2 className="text-xl font-semibold">Analytics Dashboard</h2>
           <p className="text-sm text-slate-400">Modern overview with route profitability</p>
+          {error ? (
+            <p className="mt-2 text-sm text-rose-400">
+              Live data unavailable: {error}. Showing empty dashboard.
+            </p>
+          ) : null}
         </div>
         <div className="flex gap-2">
           <select
